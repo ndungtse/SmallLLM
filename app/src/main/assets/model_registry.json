@@ -1,0 +1,36 @@
+{
+  "models": [
+    {
+      "name": "Qwen3 0.6B",
+      "modelId": "litert-community/Qwen3-0.6B",
+      "description": "Smallest Qwen3 with native tool calling and 32K context. Best all-round chat model under ~600MB. Runs on LiteRT-LM with CPU/GPU acceleration.",
+      "fileName": "Qwen3-0.6B.litertlm",
+      "version": "main",
+      "downloadUrl": "https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/Qwen3-0.6B.litertlm?download=true",
+      "sizeInBytes": 560000000,
+      "params": "0.6B",
+      "contextLength": 32768,
+      "runtime": "LITERT_LM",
+      "supportsTools": true,
+      "requiresAccessToken": false,
+      "minDeviceMemoryInGb": 4,
+      "sampling": { "topK": 40, "topP": 0.95, "temperature": 0.8, "maxTokens": 1024 }
+    },
+    {
+      "name": "SmolLM2 135M Instruct",
+      "modelId": "bartowski/SmolLM2-135M-Instruct-GGUF",
+      "description": "Tiny ~94MB baseline for chat, classification and routing. No tool calling. Runs on llama.cpp (GGUF, Q4_K_M) entirely on CPU.",
+      "fileName": "SmolLM2-135M-Instruct-Q4_K_M.gguf",
+      "version": "main",
+      "downloadUrl": "https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q4_K_M.gguf?download=true",
+      "sizeInBytes": 92000000,
+      "params": "135M",
+      "contextLength": 2048,
+      "runtime": "LLAMA_CPP",
+      "supportsTools": false,
+      "requiresAccessToken": false,
+      "minDeviceMemoryInGb": 2,
+      "sampling": { "topK": 40, "topP": 0.95, "temperature": 0.7, "maxTokens": 1024 }
+    }
+  ]
+}

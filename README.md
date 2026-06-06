@@ -9,11 +9,12 @@ to find the smallest, most efficient model that still does a useful job.
 
 It is inspired by [Google AI Edge Gallery](https://github.com/google-ai-edge/gallery) but
 deliberately leaner, and is structured around a personal growth path: **Kotlin, Jetpack Compose,
-on-device inference (LiteRT / MediaPipe), function calling, and eventually fine-tuning.**
+on-device inference (LiteRT-LM / llama.cpp), function calling, and eventually fine-tuning.**
 
-> 🔬 **A study/research project, not a product.** There is no deadline and no "MVP" — just phases to
-> learn through. Nothing is cut; later capabilities simply come in later phases.
-> Current focus: **Phase 0 — standing up the runtimes.** See the [Roadmap](docs/ROADMAP.md).
+> 🔬 **A study/research project, not a product.** There is no deadline and no "MVP" — just steps to
+> learn through, built as needed rather than on a fixed schedule. Nothing is cut; some parts simply
+> come later. Current focus: **standing up the runtimes** (the foundation). See the
+> [Roadmap](docs/ROADMAP.md).
 
 ## Why
 
@@ -35,10 +36,10 @@ The companion study that motivates it: [Sub-200MB LLM Landscape](docs/smollm_res
                         │
 ┌───────────────────────▼─────────────────────┐
 │  runtime/  — LlmRuntime interface            │
-│  ┌──────────────┐  ┌───────────┐  ┌────────┐ │
-│  │ LiteRT-LM    │  │ MediaPipe │  │ GGUF   │ │
-│  │              │  │           │  │llama.cpp│ │
-│  └──────────────┘  └───────────┘  └────────┘ │
+│  ┌──────────────────┐   ┌──────────────────┐ │
+│  │ LiteRT-LM        │   │ llama.cpp (GGUF) │ │
+│  │ .litertlm/.task  │   │ :llamacpp / JNI  │ │
+│  └──────────────────┘   └──────────────────┘ │
 └───────────────────────┬─────────────────────┘
                         │
 ┌───────────────────────▼─────────────────────┐
@@ -47,9 +48,10 @@ The companion study that motivates it: [Sub-200MB LLM Landscape](docs/smollm_res
 ```
 
 A single `LlmRuntime` abstraction lets the app swap inference backends without touching the UI. The
-first phase stands up **all** the runtimes behind it — LiteRT-LM (FunctionGemma, Qwen3 0.6B),
-MediaPipe, and llama.cpp/GGUF (SmolLM2-135M) — so that any model in the registry can be loaded and
-studied, regardless of its format. See [Architecture](docs/ARCHITECTURE.md).
+foundation stands up two runtimes behind it — **LiteRT-LM** (`.litertlm`/`.task`; Qwen3 0.6B,
+FunctionGemma) and **llama.cpp/GGUF** (the native `:llamacpp` module; SmolLM2-135M) — so any model in
+the registry can be loaded and studied, regardless of its format. (MediaPipe was dropped: its LLM
+Inference API is deprecated in favour of LiteRT-LM.) See [Architecture](docs/ARCHITECTURE.md).
 
 ## Build & run
 
@@ -71,7 +73,7 @@ studied, regardless of its format. See [Architecture](docs/ARCHITECTURE.md).
 |---|---|
 | [docs/SPECS.md](docs/SPECS.md) | Product scope, curated model registry, functional & non-functional requirements |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layering, the `LlmRuntime` abstraction, model lifecycle, dependency plan |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Phases 0–5, from runtimes + gallery/chat to fine-tuning |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | The build steps, from runtimes + gallery/chat to fine-tuning |
 | [docs/smollm_research_report.md](docs/smollm_research_report.md) | The sub-200MB LLM landscape study that motivates the project |
 
 ## Credits

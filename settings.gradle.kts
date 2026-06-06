@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "SmallLLM"
 include(":app")
+include(":llamacpp")
