@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmolLM-135M & the Sub-200MB LLM Landscape — Research Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0e0b;
+    --ink-muted: #6b6960;
+    --ink-faint: #a8a49c;
+    --paper: #faf8f4;
+    --paper-tint: #f2efe8;
+    --paper-mid: #e8e4da;
+    --accent: #c94a1a;
+    --accent-pale: #f9ede7;
+    --blue: #1a5f8c;
+    --blue-pale: #e7f0f7;
+    --green: #1e6b3a;
+    --green-pale: #e6f4ec;
+    --amber: #8c5e0a;
+    --amber-pale: #fdf3e0;
+    --red: #9e2323;
+    --red-pale: #fdeaea;
+    --serif: 'DM Serif Display', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+    --mono: 'DM Mono', 'Fira Code', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.75;
+    font-weight: 300;
+  }
+
+  /* Layout */
+  .page-wrap { max-width: 860px; margin: 0 auto; padding: 0 2rem; }
+
+  /* Header */
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding: 3.5rem 0 2rem;
+    margin-bottom: 3rem;
+  }
+  .report-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    line-height: 1.1;
+    font-weight: 400;
+    max-width: 680px;
+    margin-bottom: 1.25rem;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .header-meta {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+  .header-meta span { display: flex; align-items: center; gap: 0.35rem; }
+
+  /* Stats strip */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: 1.5px solid var(--ink);
+    margin-bottom: 3.5rem;
+  }
+  .stat {
+    padding: 1.25rem 1.5rem;
+    border-right: 1px solid var(--paper-mid);
+  }
+  .stat:last-child { border-right: none; }
+  .stat-number {
+    font-family: var(--serif);
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+  .stat-label { font-size: 12px; color: var(--ink-muted); font-weight: 400; }
+
+  /* Sections */
+  section { margin-bottom: 3.5rem; }
+  h2 {
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 400;
+    border-top: 2px solid var(--ink);
+    padding-top: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  h3 {
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin: 1.75rem 0 0.75rem;
+    font-family: var(--mono);
+  }
+  p { margin-bottom: 1rem; }
+  ul { padding-left: 1.25rem; margin-bottom: 1rem; }
+  ul li { margin-bottom: 0.3rem; }
+
+  /* Model cards */
+  .model-card {
+    border: 1px solid var(--paper-mid);
+    background: #fff;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  .model-card.primary { border-left: 4px solid var(--accent); }
+  .model-card.blue-accent { border-left: 4px solid var(--blue); }
+  .model-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+  .model-name {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 400;
+    line-height: 1.2;
+  }
+  .model-year {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    padding: 3px 8px;
+    border: 1px solid var(--paper-mid);
+    white-space: nowrap;
+  }
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.85rem;
+  }
+  .badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .badge-size { background: var(--paper-tint); color: var(--ink-muted); }
+  .badge-yes { background: var(--green-pale); color: var(--green); }
+  .badge-no { background: var(--red-pale); color: var(--red); }
+  .badge-new { background: var(--blue-pale); color: var(--blue); }
+  .badge-subject { background: var(--accent-pale); color: var(--accent); }
+  .model-body { font-size: 14px; line-height: 1.7; color: #3a3830; }
+  .model-body p { margin-bottom: 0.6rem; }
+
+  /* Verdict box */
+  .verdict {
+    background: var(--paper-tint);
+    border-left: 3px solid var(--ink);
+    padding: 0.75rem 1rem;
+    font-size: 13px;
+    margin-top: 0.75rem;
+    line-height: 1.6;
+  }
+  .verdict strong { font-weight: 500; color: var(--ink); }
+  .verdict.good { border-left-color: var(--green); background: var(--green-pale); color: #1a4d2a; }
+  .verdict.warn { border-left-color: var(--amber); background: var(--amber-pale); color: #5c3d04; }
+  .verdict.bad { border-left-color: var(--red); background: var(--red-pale); color: var(--red); }
+
+  /* Bar charts */
+  .bars { margin: 0.75rem 0; }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 52px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+  }
+  .bar-name { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); text-align: right; }
+  .bar-track { height: 6px; background: var(--paper-mid); border-radius: 1px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 1px; }
+  .bar-val { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; margin: 1rem 0 1.5rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { border-bottom: 2px solid var(--ink); }
+  th {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+  }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--paper-mid); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .tick { color: var(--green); font-weight: 500; }
+  .cross { color: var(--red); }
+  .tag-yes { display: inline-block; background: var(--green-pale); color: var(--green); font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 2px; font-weight: 500; }
+  .tag-no  { display: inline-block; background: var(--red-pale); color: var(--red); font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 2px; font-weight: 500; }
+  .tag-spec { display: inline-block; background: var(--amber-pale); color: var(--amber); font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 2px; font-weight: 500; }
+
+  /* Two-column grid */
+  .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 620px) { .col2 { grid-template-columns: 1fr; } }
+
+  /* Findings list */
+  .findings-list { list-style: none; padding: 0; counter-reset: finding; }
+  .findings-list li {
+    counter-increment: finding;
+    padding: 1rem 1rem 1rem 3.5rem;
+    border-bottom: 1px solid var(--paper-mid);
+    position: relative;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .findings-list li:last-child { border-bottom: none; }
+  .findings-list li::before {
+    content: counter(finding, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 1rem;
+    font-family: var(--serif);
+    font-size: 1.2rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .findings-list li strong { font-weight: 500; color: var(--ink); }
+
+  /* Rec table */
+  .rec-table td:first-child { font-weight: 400; font-size: 13px; color: var(--ink-muted); width: 46%; }
+  .rec-model { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 500; }
+
+  /* Chips */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem; }
+  .chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border: 1px solid var(--paper-mid);
+    color: var(--ink-muted);
+    background: var(--paper-tint);
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--paper-mid);
+    padding: 2rem 0 3rem;
+    font-size: 12px;
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    line-height: 1.7;
+  }
+
+  /* Section number decoration */
+  .section-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-bottom: 0.25rem;
+    display: block;
+  }
+
+  @media print {
+    body { background: white; }
+    .model-card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <header>
+    <div class="report-label">Research Report · Edge AI · On-Device Models</div>
+    <h1>SmolLM-135M &amp; the <em>Sub-200MB</em> LLM Landscape</h1>
+    <div class="header-meta">
+      <span>📅 June 2026</span>
+      <span>🔍 7 models profiled</span>
+      <span>📱 Mobile + edge deployment focus</span>
+    </div>
+  </header>
+
+  <div class="stats-strip">
+    <div class="stat">
+      <span class="stat-number">~94MB</span>
+      <span class="stat-label">SmolLM2-135M int4 footprint</span>
+    </div>
+    <div class="stat">
+      <span class="stat-number">2K</span>
+      <span class="stat-label">Context window (135M models)</span>
+    </div>
+    <div class="stat">
+      <span class="stat-number">0</span>
+      <span class="stat-label">Sub-200MB models with native tool calling</span>
+    </div>
+  </div>
+
+  <!-- Overview -->
+  <section>
+    <span class="section-num">§ 01</span>
+    <h2>Overview</h2>
+    <p>SmolLM-135M is a 135M-parameter language model released by HuggingFace in July 2024. With an int4-quantized footprint of approximately 94MB, it is one of the smallest production-ready LLMs available — small enough to ship inside a Python package.</p>
+    <p>This report profiles SmolLM-135M alongside its successor and the broader landscape of competing models at and near this size class, with particular attention to tool calling capability, deployment format support, and real-world suitability for on-device mobile use.</p>
+  </section>
+
+  <!-- SmolLM-135M -->
+  <section>
+    <span class="section-num">§ 02</span>
+    <h2>SmolLM-135M (July 2024)</h2>
+
+    <div class="model-card primary">
+      <div class="model-card-head">
+        <span class="model-name">SmolLM-135M</span>
+        <span class="model-year">HuggingFace · Jul 2024</span>
+      </div>
+      <div class="badges">
+        <span class="badge badge-subject">Your model</span>
+        <span class="badge badge-size">135M params</span>
+        <span class="badge badge-size">~270MB BF16</span>
+        <span class="badge badge-size">~94MB int4</span>
+        <span class="badge badge-size">2K context</span>
+        <span class="badge badge-no">No tool calling</span>
+      </div>
+      <div class="model-body">
+        <p>Decoder-only transformer with Grouped Query Attention (GQA), trained on the SmolLM-Corpus: Cosmopedia v2 (synthetic educational textbooks), FineWeb-Edu (educational web samples), and Python-Edu (educational Python code from The Stack).</p>
+
+        <h3>Benchmark scores</h3>
+        <div class="bars">
+          <div class="bar-row"><span class="bar-name">ARC-Easy</span><div class="bar-track"><div class="bar-fill" style="width:52%;background:#c94a1a;"></div></div><span class="bar-val">~52%</span></div>
+          <div class="bar-row"><span class="bar-name">HellaSwag</span><div class="bar-track"><div class="bar-fill" style="width:46%;background:#c94a1a;"></div></div><span class="bar-val">~46%</span></div>
+          <div class="bar-row"><span class="bar-name">PIQA</span><div class="bar-track"><div class="bar-fill" style="width:61%;background:#c94a1a;"></div></div><span class="bar-val">~61%</span></div>
+          <div class="bar-row"><span class="bar-name">OpenBookQA</span><div class="bar-track"><div class="bar-fill" style="width:36%;background:#c94a1a;"></div></div><span class="bar-val">~36%</span></div>
+        </div>
+
+        <h3>What it's good for</h3>
+        <ul>
+          <li>Text classification, short Q&amp;A, keyword extraction</li>
+          <li>Routing tasks inside a larger agent pipeline</li>
+          <li>Runs fully offline on CPU — viable on Raspberry Pi-class hardware</li>
+          <li>Browser deployment via WebGPU (demo available)</li>
+        </ul>
+
+        <h3>Hard limitations</h3>
+        <ul>
+          <li>2K context ceiling — no long documents or extended conversations</li>
+          <li>No function / tool calling (deliberately excluded from post-training)</li>
+          <li>Multi-step reasoning, math, and coding are unreliable</li>
+          <li>Not a viable general chat assistant at this size</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SmolLM2-135M -->
+  <section>
+    <span class="section-num">§ 03</span>
+    <h2>SmolLM2-135M (November 2024)</h2>
+
+    <div class="model-card primary">
+      <div class="model-card-head">
+        <span class="model-name">SmolLM2-135M</span>
+        <span class="model-year">HuggingFace · Nov 2024</span>
+      </div>
+      <div class="badges">
+        <span class="badge badge-new">Recommended upgrade</span>
+        <span class="badge badge-size">135M params</span>
+        <span class="badge badge-size">~94MB int4</span>
+        <span class="badge badge-size">pip installable</span>
+        <span class="badge badge-no">No tool calling</span>
+      </div>
+      <div class="model-body">
+        <p>Same architecture as v1, trained on 2T tokens (previously ~600B). Additions include FineMath, InfiMM-WebMath, and DCLM filtered with a FineWeb-Edu quality classifier. The int4-quantized version ships inside a single Python package — the first LLM you can <code>pip install</code> with no separate model download.</p>
+        <p>Post-training used SFT on filtered SmolTalk + DPO with UltraFeedback. Complex tasks including function calling were deliberately excluded to match the model's capacity.</p>
+
+        <h3>Delta vs SmolLM v1</h3>
+        <div class="bars">
+          <div class="bar-row"><span class="bar-name">ARC avg</span><div class="bar-track"><div class="bar-fill" style="width:57%;background:#1e6b3a;"></div></div><span class="bar-val">~57% (+5pp)</span></div>
+          <div class="bar-row"><span class="bar-name">HellaSwag</span><div class="bar-track"><div class="bar-fill" style="width:52%;background:#1e6b3a;"></div></div><span class="bar-val">~52% (+6pp)</span></div>
+          <div class="bar-row"><span class="bar-name">PIQA</span><div class="bar-track"><div class="bar-fill" style="width:65%;background:#1e6b3a;"></div></div><span class="bar-val">~65% (+4pp)</span></div>
+        </div>
+      </div>
+      <div class="verdict good">
+        <strong>Use SmolLM2 over v1 — always.</strong> Strictly better on every benchmark at the exact same footprint. If you're already on v1, this is a free upgrade.
+      </div>
+    </div>
+  </section>
+
+  <!-- Competitors sub-300MB -->
+  <section>
+    <span class="section-num">§ 04</span>
+    <h2>Direct Competitors — Sub-300MB</h2>
+
+    <div class="col2">
+      <div class="model-card">
+        <div class="model-card-head">
+          <span class="model-name">FunctionGemma 270M</span>
+          <span class="model-year">Google · Dec 2025</span>
+        </div>
+        <div class="badges">
+          <span class="badge badge-size">270M params</span>
+          <span class="badge badge-size">288MB int8</span>
+          <span class="badge badge-yes">Tool calling ✓</span>
+        </div>
+        <div class="model-body">
+          <p>Gemma 3 270M fine-tuned exclusively for function calling. Purpose-built routing engine — translates natural language to structured API calls. Not a general chat model.</p>
+          <p>Base accuracy: <strong>58%</strong>. After fine-tuning on your API surface: <strong>~85%</strong>. Uses a custom non-JSON output format. ~126 tok/s on S25 Ultra CPU. Official LiteRT .litertlm builds available.</p>
+        </div>
+        <div class="verdict warn">
+          Best at tool calling under 300MB, but <strong>requires fine-tuning</strong> for your specific API surface. Not a drop-in general assistant.
+        </div>
+      </div>
+
+      <div class="model-card">
+        <div class="model-card-head">
+          <span class="model-name">Gemma 3 270M</span>
+          <span class="model-year">Google · 2025</span>
+        </div>
+        <div class="badges">
+          <span class="badge badge-size">270M params</span>
+          <span class="badge badge-size">~500MB FP16</span>
+          <span class="badge badge-no">No tool calling</span>
+        </div>
+        <div class="model-body">
+          <p>General-purpose base from which FunctionGemma was derived. Slightly better at open-ended text than FunctionGemma, which traded general capability for function-calling specialization.</p>
+          <p>HellaSwag: ~37.7% · PIQA: ~66.2% (zero-shot). 32K context window.</p>
+        </div>
+        <div class="verdict">
+          Better general chat than FunctionGemma. Neither out-benchmarks SmolLM2 at comparable size.
+        </div>
+      </div>
+    </div>
+
+    <div class="model-card" style="margin-top:0;">
+      <div class="model-card-head">
+        <span class="model-name">MobileLLM-125M / 350M</span>
+        <span class="model-year">Meta · ICML 2024</span>
+      </div>
+      <div class="badges">
+        <span class="badge badge-size">125M or 350M params</span>
+        <span class="badge badge-size">~240MB / ~670MB</span>
+        <span class="badge badge-no">No tool calling</span>
+        <span class="badge badge-new">Influence model</span>
+      </div>
+      <div class="model-body">
+        <p>Research model demonstrating that for sub-1B models, <strong>depth beats width</strong>. Deep-and-thin architecture with embedding sharing, GQA, and block-wise weight sharing. At 125M, +4.3pp over prior art on TQA; at 350M, ~10pp better on RACE reading comprehension.</p>
+        <p>Not widely distributed as an end-user model. Its architectural findings are now baked into SmolLM2 and Qwen3 edge models.</p>
+      </div>
+      <div class="verdict">
+        <strong>Not a deployment choice — an influence model.</strong> Its depth-over-width finding is the consensus design principle for this size class today.
+      </div>
+    </div>
+  </section>
+
+  <!-- Adjacent 300–700MB -->
+  <section>
+    <span class="section-num">§ 05</span>
+    <h2>Adjacent Models — 300MB to 700MB</h2>
+    <p style="font-size:14px;color:var(--ink-muted);margin-bottom:1.25rem;">The capability gap between 135M and 600M is significant. These models are relevant context for anyone whose real constraint is 600MB rather than 200MB.</p>
+
+    <div class="col2">
+      <div class="model-card blue-accent">
+        <div class="model-card-head">
+          <span class="model-name">Qwen3 0.6B</span>
+          <span class="model-year">Alibaba · Apr 2025</span>
+        </div>
+        <div class="badges">
+          <span class="badge badge-size">0.6B params</span>
+          <span class="badge badge-size">~400–600MB Q4</span>
+          <span class="badge badge-yes">Native tool calling ✓</span>
+          <span class="badge badge-size">32K context</span>
+        </div>
+        <div class="model-body">
+          <p>Smallest model with native tool calling in the Qwen3 family. Built-in thinking / non-thinking mode switch. Strong-to-Weak Distillation from larger Qwen3 models. Outperforms Gemma 3 1B IT on non-thinking benchmarks. Apache 2.0.</p>
+          <p>Official LiteRT community build at <code>litert-community/Qwen3-0.6B</code> — GPU/NPU accelerated on Android.</p>
+        </div>
+        <div class="verdict good">
+          <strong>Best option under ~600MB for general chat + tool calling combined.</strong>
+        </div>
+      </div>
+
+      <div class="model-card blue-accent">
+        <div class="model-card-head">
+          <span class="model-name">Qwen3.5 0.8B</span>
+          <span class="model-year">Alibaba · Feb 2026</span>
+        </div>
+        <div class="badges">
+          <span class="badge badge-size">0.8B params</span>
+          <span class="badge badge-size">~500–700MB Q4</span>
+          <span class="badge badge-yes">Native tool calling ✓</span>
+          <span class="badge badge-new">Multimodal</span>
+          <span class="badge badge-size">262K context</span>
+        </div>
+        <div class="model-body">
+          <p>Newest entry in this size class. Uses the Gated Delta Network (GDN) hybrid architecture from the flagship 397B model. Natively multimodal (text + images + video) at sub-1B scale. 262K context is the longest in this size class by a large margin.</p>
+          <p>Note: new GDN architecture may require updated inference framework versions.</p>
+        </div>
+        <div class="verdict good">
+          <strong>Most capable model under ~700MB.</strong> Unprecedented multimodal + tool calling at this size.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison table -->
+  <section>
+    <span class="section-num">§ 06</span>
+    <h2>Full Comparison</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Params</th>
+            <th>Size (quant)</th>
+            <th>Context</th>
+            <th>Tool calling</th>
+            <th>Released</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>SmolLM-135M</strong></td>
+            <td>135M</td>
+            <td>~94MB int4</td>
+            <td>2K</td>
+            <td><span class="tag-no">✗ none</span></td>
+            <td>Jul 2024</td>
+          </tr>
+          <tr>
+            <td><strong>SmolLM2-135M</strong></td>
+            <td>135M</td>
+            <td>~94MB int4</td>
+            <td>2K</td>
+            <td><span class="tag-no">✗ none</span></td>
+            <td>Nov 2024</td>
+          </tr>
+          <tr>
+            <td>MobileLLM-125M</td>
+            <td>125M</td>
+            <td>~240MB</td>
+            <td>2K</td>
+            <td><span class="tag-no">✗ none</span></td>
+            <td>2024</td>
+          </tr>
+          <tr>
+            <td>Gemma 3 270M</td>
+            <td>270M</td>
+            <td>~500MB FP16</td>
+            <td>32K</td>
+            <td><span class="tag-no">✗ none</span></td>
+            <td>2025</td>
+          </tr>
+          <tr>
+            <td>FunctionGemma 270M</td>
+            <td>270M</td>
+            <td>288MB int8</td>
+            <td>32K</td>
+            <td><span class="tag-spec">✓ specialized</span></td>
+            <td>Dec 2025</td>
+          </tr>
+          <tr>
+            <td><strong>Qwen3 0.6B</strong></td>
+            <td>600M</td>
+            <td>~400–600MB Q4</td>
+            <td>32K</td>
+            <td><span class="tag-yes">✓ native</span></td>
+            <td>Apr 2025</td>
+          </tr>
+          <tr>
+            <td><strong>Qwen3.5 0.8B</strong></td>
+            <td>800M</td>
+            <td>~500–700MB Q4</td>
+            <td>262K</td>
+            <td><span class="tag-yes">✓ native</span></td>
+            <td>Feb 2026</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Deployment format support</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>LiteRT</th>
+            <th>GGUF</th>
+            <th>ExecuTorch</th>
+            <th>WebGPU / Transformers.js</th>
+            <th>MNN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>SmolLM2-135M</td><td>—</td><td><span class="tag-yes">✓</span></td><td>—</td><td><span class="tag-yes">✓</span></td><td>—</td></tr>
+          <tr><td>FunctionGemma 270M</td><td><span class="tag-yes">✓ official</span></td><td><span class="tag-yes">✓</span></td><td>—</td><td><span class="tag-yes">✓</span></td><td>—</td></tr>
+          <tr><td>Gemma 3 270M</td><td><span class="tag-yes">✓</span></td><td><span class="tag-yes">✓</span></td><td>—</td><td><span class="tag-yes">✓</span></td><td>—</td></tr>
+          <tr><td>Qwen3 0.6B</td><td><span class="tag-yes">✓ community</span></td><td><span class="tag-yes">✓</span></td><td><span class="tag-yes">✓</span></td><td>—</td><td><span class="tag-yes">✓</span></td></tr>
+          <tr><td>Qwen3.5 0.8B</td><td>—</td><td><span class="tag-yes">✓</span></td><td><span class="tag-yes">✓</span></td><td>—</td><td><span class="tag-yes">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Key findings -->
+  <section>
+    <span class="section-num">§ 07</span>
+    <h2>Key Findings</h2>
+    <ol class="findings-list">
+      <li><strong>SmolLM2-135M is the best 135M model available.</strong> Meaningfully better than v1 on every benchmark, same footprint, pip-installable. There is no reason to use v1.</li>
+      <li><strong>No 135M model supports tool calling</strong> — this is a deliberate design constraint, not an oversight. Complex instruction-following tasks were excluded from post-training because the capacity simply isn't there at 135M parameters.</li>
+      <li><strong>FunctionGemma 270M fills the tool-calling gap but is a specialist.</strong> Requires fine-tuning on your specific API surface before reaching production-worthy accuracy (58% → 85%). Not a general assistant.</li>
+      <li><strong>The real capability jump is at 0.6B.</strong> Qwen3 0.6B offers native tool calling, 32K context, thinking modes, and LiteRT support at ~400–600MB. If your constraint is 600MB not 200MB, this is the clear recommendation.</li>
+      <li><strong>Quantization is still moving fast.</strong> ParetoQ (Meta, NeurIPS 2025) established that a larger model at 2 bits outperforms a half-size model at 4 bits for equivalent size budgets. Future 1B models at 2-bit quantization may reach the 200MB class.</li>
+      <li><strong>Architecture depth beats width at this scale.</strong> MobileLLM's ICML 2024 finding is now consensus. SmolLM2's data improvements and Qwen3's distillation gains both reflect the same principle.</li>
+    </ol>
+  </section>
+
+  <!-- Recommendations -->
+  <section>
+    <span class="section-num">§ 08</span>
+    <h2>Recommendations by Use Case</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Use case</th>
+            <th>Recommended model</th>
+          </tr>
+        </thead>
+        <tbody class="rec-table">
+          <tr><td>Absolute smallest footprint, no tool calling needed</td><td><span class="rec-model">SmolLM2-135M (~94MB int4)</span></td></tr>
+          <tr><td>Function / tool calling, willing to fine-tune, mobile</td><td><span class="rec-model">FunctionGemma 270M + fine-tune</span></td></tr>
+          <tr><td>General chat + tool calling, ~600MB budget</td><td><span class="rec-model">Qwen3 0.6B (LiteRT build)</span></td></tr>
+          <tr><td>Best overall under 700MB, multimodal, very long context</td><td><span class="rec-model">Qwen3.5 0.8B</span></td></tr>
+          <tr><td>Pipeline routing / text classification only</td><td><span class="rec-model">SmolLM2-135M or SmolLM2-360M</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Deployment chips -->
+  <section>
+    <span class="section-num">§ 09</span>
+    <h2>Deployment Ecosystem</h2>
+    <p style="font-size:14px;color:var(--ink-muted);">Known working deployment formats for models in this size class:</p>
+    <div class="chip-row">
+      <span class="chip">SmolLM2 → WebGPU</span>
+      <span class="chip">SmolLM2 → Transformers.js</span>
+      <span class="chip">SmolLM2 → GGUF / llama.cpp</span>
+      <span class="chip">FunctionGemma → LiteRT .litertlm</span>
+      <span class="chip">FunctionGemma → MediaPipe .task</span>
+      <span class="chip">FunctionGemma → NPU (S25 Ultra)</span>
+      <span class="chip">Qwen3 0.6B → LiteRT community build</span>
+      <span class="chip">Qwen3 0.6B → GGUF / llama.cpp</span>
+      <span class="chip">Qwen3 0.6B → ExecuTorch (iOS/Android)</span>
+      <span class="chip">Qwen3 0.6B → MNN (mobile)</span>
+      <span class="chip">Qwen3.5 0.8B → GGUF / llama.cpp</span>
+      <span class="chip">Qwen3.5 0.8B → ExecuTorch</span>
+    </div>
+  </section>
+
+  <footer>
+    <p>Benchmarks are vendor-reported where noted and have not been independently verified. File sizes are approximate and vary by quantization method and inference framework. Research compiled June 2026.</p>
+    <p style="margin-top:0.5rem;">Models referenced: SmolLM-135M (HuggingFace, 2024) · SmolLM2-135M (HuggingFace, 2024) · MobileLLM (Meta, 2024) · Gemma 3 270M (Google, 2025) · FunctionGemma 270M (Google, 2025) · Qwen3 0.6B (Alibaba, 2025) · Qwen3.5 0.8B (Alibaba, 2026)</p>
+  </footer>
+
+</div>
+</body>
+</html>
