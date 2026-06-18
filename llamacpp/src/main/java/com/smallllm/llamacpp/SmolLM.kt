@@ -80,9 +80,18 @@ class SmolLM {
 
         @Synchronized
         fun ensureLibraryLoaded() {
-            if (!libraryLoaded) {
+            if (libraryLoaded) return
+            try {
                 System.loadLibrary("smollm")
                 libraryLoaded = true
+            } catch (e: UnsatisfiedLinkError) {
+                // Native layer not built yet (no NDK / no llama.cpp submodule). Translate the
+                // Error into an Exception so callers can show a friendly message instead of crashing.
+                throw IllegalStateException(
+                    "GGUF runtime unavailable: native library 'libsmollm.so' isn't built. " +
+                        "See llamacpp/README.md to enable llama.cpp.",
+                    e,
+                )
             }
         }
     }

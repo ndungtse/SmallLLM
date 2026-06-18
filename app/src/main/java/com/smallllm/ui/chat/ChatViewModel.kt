@@ -70,7 +70,11 @@ class ChatViewModel(
                 )
                 runtime = rt
                 _uiState.update { it.copy(loadState = LoadState.Ready) }
-            } catch (e: Exception) {
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                // Throwable, not Exception: native model loads can fail with Errors
+                // (e.g. UnsatisfiedLinkError) that must not crash the app.
                 _uiState.update { it.copy(loadState = LoadState.Error(e.message ?: "Failed to load model")) }
             }
         }

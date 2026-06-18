@@ -67,7 +67,7 @@ void LLMInference::startCompletion(const char* query) {
     }
     std::string prompt(formattedPrompt.begin() + prevFormattedLen, formattedPrompt.begin() + newLen);
 
-    const bool isFirst = llama_kv_self_used_cells(ctx) == 0;
+    const bool isFirst = (llama_memory_seq_pos_max(llama_get_memory(ctx), 0) + 1) == 0;
     int nPromptTokens = -llama_tokenize(vocab, prompt.c_str(), prompt.size(), nullptr, 0, isFirst, true);
     promptTokens.resize(nPromptTokens);
     if (llama_tokenize(vocab, prompt.c_str(), prompt.size(), promptTokens.data(),
@@ -78,7 +78,7 @@ void LLMInference::startCompletion(const char* query) {
 }
 
 std::string LLMInference::completionLoop(bool& done) {
-    const int nCtxUsed = llama_kv_self_used_cells(ctx);
+    const int nCtxUsed = llama_memory_seq_pos_max(llama_get_memory(ctx), 0) + 1;
     if (stopRequested || nCtxUsed + batch.n_tokens > nCtxMax) {
         done = true;
         addChatMessage(cachedResponse.c_str(), "assistant");

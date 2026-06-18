@@ -10,12 +10,15 @@ project(smollm)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Build llama.cpp as a static lib, library-only (no examples/tests/tools on device).
-set(LLAMA_BUILD_COMMON ON CACHE BOOL "" FORCE)
+# Build llama.cpp library-only (no examples/tests/tools/server on device), statically linked into
+# libsmollm.so so we ship a single shared object.
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_COMMON OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
+set(LLAMA_CURL OFF CACHE BOOL "" FORCE)
 set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(llama.cpp)
@@ -26,6 +29,5 @@ add_library(smollm SHARED
 
 target_link_libraries(smollm
         llama
-        common
         android
         log)
