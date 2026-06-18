@@ -80,7 +80,12 @@ class DownloadWorker(context: Context, params: WorkerParameters) :
             val code = connection.responseCode
             if (code !in 200..299) {
                 connection.disconnect()
-                return@withContext fail("HTTP $code")
+                val message = when (code) {
+                    401, 403 -> "Access denied (HTTP $code) — gated model needs a valid HF token"
+                    404 -> "Not found (HTTP 404) — check the model URL"
+                    else -> "HTTP $code"
+                }
+                return@withContext fail(message)
             }
             val resumed = code == HttpURLConnection.HTTP_PARTIAL
             val startByte = if (resumed) existing else 0L

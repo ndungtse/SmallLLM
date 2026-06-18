@@ -48,7 +48,10 @@ class GalleryViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun download(spec: ModelSpec) =
-        container.downloadRepository.download(spec, accessToken = null)
+        container.downloadRepository.download(
+            spec,
+            accessToken = if (spec.requiresAccessToken) container.hfAccessToken else null,
+        )
 
     fun cancel(spec: ModelSpec) = container.downloadRepository.cancel(spec)
 
