@@ -1,6 +1,16 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+// Hugging Face access token for gated models (e.g. Gemma). Read from local.properties (gitignored)
+// or the HF_TOKEN env var — never committed. Empty when not configured.
+val hfAccessToken: String = run {
+    val props = Properties()
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { props.load(it) }
+    props.getProperty("HF_TOKEN") ?: System.getenv("HF_TOKEN") ?: ""
 }
 
 android {
@@ -19,6 +29,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "HF_TOKEN", "\"$hfAccessToken\"")
     }
 
     buildTypes {
@@ -34,6 +46,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

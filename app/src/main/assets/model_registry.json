@@ -17,6 +17,38 @@
       "sampling": { "topK": 40, "topP": 0.95, "temperature": 0.8, "maxTokens": 1024 }
     },
     {
+      "name": "Gemma 3 270M IT (q8)",
+      "modelId": "litert-community/gemma-3-270m-it",
+      "description": "Google Gemma 3 270M instruction-tuned, int8 (.litertlm). Compact general chat model, 32K context. Gemma-licensed and gated — needs a Hugging Face access token to download. No native tool calling.",
+      "fileName": "gemma3-270m-it-q8.litertlm",
+      "version": "main",
+      "downloadUrl": "https://huggingface.co/litert-community/gemma-3-270m-it/resolve/main/gemma3-270m-it-q8.litertlm?download=true",
+      "sizeInBytes": 292000000,
+      "params": "270M",
+      "contextLength": 32768,
+      "runtime": "LITERT_LM",
+      "supportsTools": false,
+      "requiresAccessToken": true,
+      "minDeviceMemoryInGb": 3,
+      "sampling": { "topK": 64, "topP": 0.95, "temperature": 1.0, "maxTokens": 1024 }
+    },
+    {
+      "name": "Gemma 3 270M IT (q4)",
+      "modelId": "litert-community/gemma-3-270m-it",
+      "description": "Google Gemma 3 270M instruction-tuned, int4 (.task, web export). Smaller/faster than q8 at some quality cost. Gemma-licensed and gated — needs a Hugging Face access token. No native tool calling.",
+      "fileName": "gemma3-270m-it-q4_0-web.task",
+      "version": "main",
+      "downloadUrl": "https://huggingface.co/litert-community/gemma-3-270m-it/resolve/main/gemma3-270m-it-q4_0-web.task?download=true",
+      "sizeInBytes": 150000000,
+      "params": "270M",
+      "contextLength": 32768,
+      "runtime": "LITERT_LM",
+      "supportsTools": false,
+      "requiresAccessToken": true,
+      "minDeviceMemoryInGb": 2,
+      "sampling": { "topK": 64, "topP": 0.95, "temperature": 1.0, "maxTokens": 1024 }
+    },
+    {
       "name": "SmolLM2 135M Instruct",
       "modelId": "bartowski/SmolLM2-135M-Instruct-GGUF",
       "description": "Tiny ~94MB baseline for chat, classification and routing. No tool calling. Runs on llama.cpp (GGUF, Q4_K_M) entirely on CPU.",

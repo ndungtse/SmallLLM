@@ -43,7 +43,12 @@ class ModelDetailViewModel(
         viewModelScope.launch { spec.value = container.modelRegistry.findByName(modelName) }
     }
 
-    fun download() = spec.value?.let { container.downloadRepository.download(it) }
+    fun download() = spec.value?.let {
+        container.downloadRepository.download(
+            it,
+            accessToken = if (it.requiresAccessToken) container.hfAccessToken else null,
+        )
+    }
     fun cancel() = spec.value?.let { container.downloadRepository.cancel(it) }
     fun delete() = spec.value?.let { container.modelStorage.delete(it) }
 

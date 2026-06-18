@@ -1,6 +1,7 @@
 package com.smallllm.di
 
 import android.content.Context
+import com.smallllm.BuildConfig
 import com.smallllm.data.download.DownloadRepository
 import com.smallllm.data.model.ModelRegistry
 import com.smallllm.data.storage.ModelStorage
@@ -17,4 +18,7 @@ class AppContainer(context: Context) {
     val modelStorage: ModelStorage by lazy { ModelStorage(appContext) }
     val downloadRepository: DownloadRepository by lazy { DownloadRepository(appContext, modelStorage) }
     val runtimeFactory: RuntimeFactory by lazy { RuntimeFactory(appContext) }
+
+    /** HF access token for gated downloads (from local.properties/HF_TOKEN); null if unset. */
+    val hfAccessToken: String? = BuildConfig.HF_TOKEN.ifBlank { null }
 }

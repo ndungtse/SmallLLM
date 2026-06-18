@@ -64,8 +64,21 @@ Inference API is deprecated in favour of LiteRT-LM.) See [Architecture](docs/ARC
 1. Clone and open the project in Android Studio.
 2. Let Gradle sync (Kotlin 2.2.10, AGP 9.2.1, Compose BOM 2026.02).
 3. Run the `app` configuration on your device/emulator.
-4. Models are **not bundled** — once the gallery is in place, you browse it in-app and download a
-   model (e.g. Qwen3 0.6B or FunctionGemma 270M) to device storage before chatting.
+4. Models are **not bundled** — browse the in-app gallery and download a model (e.g. Qwen3 0.6B) to
+   device storage before chatting.
+
+**GGUF (llama.cpp) support** needs a one-time native setup — see [llamacpp/README.md](llamacpp/README.md)
+(`git submodule update --init`, NDK + CMake).
+
+**Gated models (Hugging Face access token).** Some models (e.g. Gemma) are gated and need an HF token
+to download. Add it to `local.properties` (gitignored — never commit it):
+```properties
+HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxx
+```
+It's exposed via `BuildConfig.HF_TOKEN` and sent as a bearer token only for models flagged
+`requiresAccessToken` in the registry. Alternatively set an `HF_TOKEN` environment variable. Without
+it, gated downloads fail with a clear "access denied" message; ungated models (Qwen3, SmolLM2) work
+as-is.
 
 ## Documentation
 
