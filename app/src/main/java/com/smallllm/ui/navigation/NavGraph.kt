@@ -12,12 +12,17 @@ import com.smallllm.ui.gallery.GalleryScreen
 
 /** Wires the three screens together. */
 @Composable
-fun SmallLlmNavGraph() {
+fun SmallLlmNavGraph(
+    dynamicColor: Boolean,
+    onToggleDynamicColor: () -> Unit,
+) {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = Destinations.GALLERY) {
         composable(Destinations.GALLERY) {
             GalleryScreen(
                 onModelClick = { name -> navController.navigate(Destinations.detail(name)) },
+                dynamicColor = dynamicColor,
+                onToggleDynamicColor = onToggleDynamicColor,
             )
         }
         composable(

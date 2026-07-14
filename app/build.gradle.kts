@@ -15,10 +15,11 @@ val hfAccessToken: String = run {
 
 android {
     namespace = "com.smallllm"
+    // compileSdk 37: the Compose foundation/ui/animation 1.12.0-alpha03 artifacts pulled in
+    // transitively by material3 1.5.0-alpha (Expressive) require compiling against API 37+.
+    // targetSdk stays 36 — this only raises the compile-time API, not runtime behavior.
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(37)
     }
 
     defaultConfig {
@@ -56,6 +57,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)

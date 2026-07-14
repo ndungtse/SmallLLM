@@ -1,25 +1,41 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+
 package com.smallllm.ui.chat
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,7 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
     modelName: String,
@@ -44,17 +59,25 @@ fun ChatScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text(state.modelName) },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
-                actions = { TextButton(onClick = viewModel::reset) { Text("Reset") } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = viewModel::reset) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Reset conversation")
+                    }
+                },
             )
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (val load = state.loadState) {
                 is LoadState.Loading ->
-                    CenterText("Loading model… (first load can take several seconds)")
+                    LoadingState("Loading model… (first load can take several seconds)")
 
                 is LoadState.NotDownloaded ->
                     CenterText("This model isn't downloaded yet. Go back and download it first.")
@@ -64,6 +87,10 @@ fun ChatScreen(
 
                 is LoadState.Ready -> {
                     MessageList(state.messages, Modifier.weight(1f))
+                    // A wavy line signals the model is actively streaming a reply.
+                    if (state.isGenerating) {
+                        LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
                     InputBar(
                         enabled = !state.isGenerating,
                         isGenerating = state.isGenerating,
@@ -86,29 +113,42 @@ private fun MessageList(messages: List<ChatMessage>, modifier: Modifier = Modifi
         state = listState,
         modifier = modifier.fillMaxWidth(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        items(messages) { message -> MessageBubble(message) }
+        // animateItem() rides the theme's expressive spring, so new/streaming bubbles
+        // settle into place with natural motion instead of snapping.
+        items(messages) { message ->
+            MessageBubble(message, Modifier.animateItem())
+        }
     }
 }
 
 @Composable
-private fun MessageBubble(message: ChatMessage) {
+private fun MessageBubble(message: ChatMessage, modifier: Modifier = Modifier) {
     val isUser = message.role == Role.USER
-    val color = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+    val color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
+    val textColor = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    // Asymmetric shapes give each side a distinct "tail" corner, a hallmark of the
+    // expressive shape language.
+    val shape = if (isUser) {
+        RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 6.dp)
+    } else {
+        RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp, bottomStart = 6.dp, bottomEnd = 22.dp)
+    }
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
         Surface(
             color = color,
-            shape = MaterialTheme.shapes.medium,
+            contentColor = textColor,
+            shape = shape,
             modifier = Modifier.widthIn(max = 320.dp),
         ) {
             Text(
                 text = message.text.ifEmpty { "…" },
-                modifier = Modifier.padding(12.dp),
-                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
     }
@@ -125,26 +165,51 @@ private fun InputBar(
     Row(
         modifier = Modifier.fillMaxWidth().padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.weight(1f),
             placeholder = { Text("Message") },
+            shape = RoundedCornerShape(26.dp),
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Send),
         )
         if (isGenerating) {
-            Button(onClick = onStop) { Text("Stop") }
+            FilledIconButton(
+                onClick = onStop,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
+            ) {
+                Icon(Icons.Filled.Stop, contentDescription = "Stop generating")
+            }
         } else {
-            Button(
-                enabled = enabled && text.isNotBlank(),
+            FilledIconButton(
                 onClick = {
                     onSend(text)
                     text = ""
                 },
-            ) { Text("Send") }
+                enabled = enabled && text.isNotBlank(),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
+            }
         }
+    }
+}
+
+@Composable
+private fun LoadingState(text: String) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        // Shape-morphing loading indicator — the signature M3 Expressive "under ~5s" component.
+        LoadingIndicator(modifier = Modifier.size(56.dp))
+        Spacer(Modifier.height(20.dp))
+        Text(text, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
